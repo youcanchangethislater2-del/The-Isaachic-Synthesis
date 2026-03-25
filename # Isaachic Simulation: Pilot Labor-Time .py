@@ -1,6 +1,6 @@
 # Isaachic Simulation: Adaptive Metabolic Brain
 # Base logic by Isaac MX Nielens (March 2026)
-# Features: Labor-Time Vouchers, Dynamic ENLT, Long scale Metabolic Ticks, Adaptive Redirects and SSI (Satisfaction Index)
+# Features: Labor-Time Vouchers, Dynamic ENLT, Metabolic Ticks, and Adaptive Redirects
 
 import random
 
@@ -132,39 +132,39 @@ class IsaachicAgent:
         self.vouchers += credit
         return credit
 
-# --- EXECUTION: THE 10-YEAR CIVILIZATION LOOP ---
+# --- EXECUTION: THE 10-YEAR CIVILIZATION LOOP ---#
 earth = ResourceBank()
 plan = CentralPlan(earth)
 
-# Initialize Agents
-surgeon = IsaachicAgent("Specialist", training_hours=20000, career_expected_hours=40000)
-laborer = IsaachicAgent("Baseline", training_hours=0, career_expected_hours=40000)
+surgeon = IsaachicAgent("Specialist", 20000, 40000)
+laborer = IsaachicAgent("Baseline", 0, 40000)
 
-# Run for 10 Years
 for year in range(1, 11):
     print(f"\n" + "#"*40)
     print(f"       STARTING YEAR {year}")
     print("#"*40)
     
-    # 1. THE LABOR PHASE: People work and earn vouchers
-    surgeon.work(40) 
-    laborer.work(40)
+    # 1. LABOR
+    surgeon.work(40); laborer.work(40)
 
-    # 2. THE CONSUMPTION PHASE: People spend their earned vouchers
-    # (We simulate demand increasing as the population grows/settles)
+    # 2. CONSUMPTION (Now including the "Life Essentials")
     base_demand = 100 + (year * 5) 
     plan.process_consumption("Bread", base_demand * 1.2)
-    plan.process_consumption("Steel", base_demand * 0.5) 
-    plan.process_consumption("Healthcare", base_demand * 1.5)
+    plan.process_consumption("Water", base_demand * 2.0)       # Vital: High Demand
+    plan.process_consumption("Medicine", base_demand * 0.5)    # Vital: Steady Demand
+    plan.process_consumption("Electricity", base_demand * 1.5) # Vital: Growing Demand
+    plan.process_consumption("Healthcare", base_demand * 1.0)
     plan.process_consumption("Wood", base_demand * 0.8)
+    plan.process_consumption("Steel", base_demand * 0.4) 
+    plan.process_consumption("Plastic", base_demand * 0.3)
 
-    # 3. THE ADJUDICATION PHASE: The system calculates the SUV and PS
+    # 3. ADJUDICATION
     plan.calculate_suv()
 
-    # 4. THE METABOLIC PHASE: The Earth regenerates and Tech evolves
+    # 4. METABOLISM & INNOVATION
     earth.tick()
     plan.innovate()
 
 print("\n" + "!"*40)
-print("   10-YEAR SIMULATION COMPLETE")
+print("   STABLE CIVILIZATION ACHIEVED")
 print("!"*40)
