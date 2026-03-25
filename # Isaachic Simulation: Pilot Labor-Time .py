@@ -13,7 +13,8 @@ class ResourceBank:
             "Wood": {"capacity": 1200, "current": 800, "regrow_rate": 0.08}, 
             "Electricity": {"capacity": 2000, "current": 1800, "regrow_rate": 0.20}, 
             "Plastic": {"capacity": 1500, "current": 600, "regrow_rate": 0.0}, 
-            "Healthcare": {"capacity": 1000, "current": 1000, "regrow_rate": 0.0}
+            "Healthcare": {"capacity": 1000, "current": 1000, "regrow_rate": 0.0},
+            "Electronics": {"capacity": 500, "current": 0, "regrow_rate": 0.0} # Added for luxury unlock
         }
 
     def tick(self, drought=False): 
@@ -36,10 +37,15 @@ class ResourceBank:
     def get_enlt_multiplier(self, resource_name):
         res = self.registry.get(resource_name)
         if res:
-            # Prevent division by zero by ensuring denominator is at least 0.01
             current_stock = max(res["current"], 0.01)
-            return res["capacity"] / current_stock
+            raw_multiplier = res["capacity"] / current_stock
+            
+            # If it's a luxury item, use a much lighter penalty (10%)
+            damping = 0.1 if resource_name == "Electronics" else 0.3
+            return 1 + (raw_multiplier - 1) * damping
         return 1.0
+
+
 
 
     def deplete(self, resource_name, amount):
@@ -78,20 +84,28 @@ class CentralPlan:
             if self.happiness_streak >= 3:
                 self.unlocked_luxury = True
                 # Electronics: High labor, high eco-cost
-                self.products["Electronics"] = {"planned_labor": 25, "spent_vouchers": 0, "base_enlt": 30}
+                self.products["Electronics"] = {"planned_labor": 50, "spent_vouchers": 0, "base_enlt": 15}
                 # Also add it to the earth's registry via the bank
                 self.bank.registry["Electronics"] = {"capacity": 500, "current": 100, "regrow_rate": 0.0}
                 self.bank.waste_bin["Electronics"] = 0
                 print("\n!!! ACHIEVEMENT UNLOCKED: HIGH-TECH LUXURY (Electronics) !!!")
     
     def innovate(self):
-        # 50% chance to focus on Electronics if they are being vetoed
-        if "Electronics" in self.products and self.products["Electronics"]["base_enlt"] > 10:
-            target = "Electronics" if random.random() > 0.5 else random.choice(list(self.products.keys()))
+        # REALISTIC R&D: If Electronics are unlocked but VETOED, focus 60% of research there.
+        # This simulates "Crisis Innovation" to break the technological bottleneck.
+        if self.unlocked_luxury and "Electronics" in self.products and self.products["Electronics"]["spent_vouchers"] == 0:
+            if random.random() < 0.60: # 60% chance to target the bottleneck
+                target = "Electronics"
+            else:
+                target = random.choice(list(self.products.keys()))
         else:
+            # Standard random innovation for a healthy economy
             target = random.choice(list(self.products.keys()))
+            
+        # Apply the 15% reduction to the Ecological Cost (base_enlt)
         self.products[target]["base_enlt"] *= 0.85
-    
+        print(f"\n[TECH PROGRESS] Research focused on {target}. Ecological cost reduced by 15%.")
+
     def intensify_electronics(self):
         # If electronics are vetoed, shift labor from healthy sectors
         if "Electronics" in self.products and self.products["Electronics"]["spent_vouchers"] == 0:
@@ -150,6 +164,7 @@ for year in range(1, 40):
     for prod in plan.products: plan.process_consumption(prod, share)
     surgeon.vouchers = 0; laborer.vouchers = 0 # Reset for next cycle
     
+    plan.intensify_electronics() # Forces labor reallocation if tech is blocked
     plan.calculate_suv()
     earth.tick(drought=(year == 5))
     
