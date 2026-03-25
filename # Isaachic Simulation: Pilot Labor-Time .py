@@ -1,21 +1,28 @@
 import random
 
+# --- RESOURCE BANK: THE METABOLIC BASIN ---
 class ResourceBank:
     def __init__(self):
-        self.waste_bin = {"Steel": 0, "Plastic": 0, "Wood": 0, "Bread": 0, "Medicine": 0, "Water": 0, "Electricity": 0, "Healthcare": 0} 
-        
-        # Earth's Registry: capacity vs current available stock
+        self.waste_bin = {"Steel": 0, "Plastic": 0, "Wood": 0, "Bread": 0, "Medicine": 0, "Water": 0, "Electricity": 0, "Healthcare": 0, "Electronics": 0} 
         self.registry = {
             "Bread": {"capacity": 1000, "current": 900, "regrow_rate": 0.05}, 
             "Medicine": {"capacity": 500, "current": 450, "regrow_rate": 0.0}, 
             "Water": {"capacity": 5000, "current": 4800, "regrow_rate": 0.10}, 
-            "Steel": {"capacity": 1000, "current": 500, "regrow_rate": 0.0}, # Increased starting stock
+            "Steel": {"capacity": 1000, "current": 500, "regrow_rate": 0.0}, 
             "Wood": {"capacity": 1200, "current": 800, "regrow_rate": 0.08}, 
             "Electricity": {"capacity": 2000, "current": 1800, "regrow_rate": 0.20}, 
             "Plastic": {"capacity": 1500, "current": 600, "regrow_rate": 0.0}, 
             "Healthcare": {"capacity": 1000, "current": 1000, "regrow_rate": 0.0},
-            "Electronics": {"capacity": 500, "current": 0, "regrow_rate": 0.0} # Added for luxury unlock
+            "Electronics": {"capacity": 500, "current": 0, "regrow_rate": 0.0} 
         }
+
+    def apply_entropy(self):
+        """Simulates thermodynamic decay (rust, rot, obsolescence)."""
+        decay_rates = {"Bread": 0.05, "Steel": 0.01, "Electricity": 0.02, "Electronics": 0.03}
+        print(">>> ENTROPY: Natural decay applied to stocks.")
+        for name, rate in decay_rates.items():
+            if name in self.registry:
+                self.registry[name]["current"] -= (self.registry[name]["current"] * rate)
 
     def tick(self, drought=False): 
         print("\n>>> METABOLIC TICK <<<")
@@ -29,7 +36,7 @@ class ResourceBank:
                 
     def recycle(self):
         for name, amount in self.waste_bin.items():
-            recovered = amount * 0.4 
+            recovered = amount * 0.8 
             if name in self.registry:
                 self.registry[name]["current"] = min(self.registry[name]["capacity"], self.registry[name]["current"] + recovered)
             self.waste_bin[name] = 0
@@ -37,31 +44,30 @@ class ResourceBank:
     def get_enlt_multiplier(self, resource_name):
         res = self.registry.get(resource_name)
         if res:
-            current_stock = max(res["current"], 0.01)
-            raw_multiplier = res["capacity"] / current_stock
-            
-            # If it's a luxury item, use a much lighter penalty (10%)
+            raw_multiplier = res["capacity"] / max(res["current"], 0.01)
             damping = 0.1 if resource_name == "Electronics" else 0.3
             return 1 + (raw_multiplier - 1) * damping
         return 1.0
 
-
-
-
     def deplete(self, resource_name, amount):
         if resource_name in self.registry:
             usage = (amount * 0.1)
-            self.registry[resource_name]["current"] -= usage
+            self.registry[resource_name]["current"] = max(0, self.registry[resource_name]["current"] - usage)
             if resource_name in self.waste_bin: self.waste_bin[resource_name] += usage
-            self.registry[resource_name]["current"] = max(0, self.registry[resource_name]["current"])
-    
+
+# --- CENTRAL PLAN: THE CYBERNETIC BRAIN ---
 class CentralPlan:
     def __init__(self, resource_bank):
         self.bank = resource_bank
-        self.substitutes = {"Steel": ["Wood", "Plastic"], "Wood": ["Plastic", "Steel"], "Plastic": ["Wood", "Bread"]}
+        self.substitutes = {
+            "Steel": ["Wood", "Plastic", "Electricity"],
+            "Wood": ["Plastic", "Steel"],
+            "Plastic": ["Wood", "Bread"],
+            "Electricity": ["Wood", "Water", "Steel"],
+        }
+
         self.unlocked_luxury = False
         self.happiness_streak = 0
-        # CALIBRATED: Planned labor now fits a 100-voucher economy
         self.products = {
             "Bread": {"planned_labor": 12, "spent_vouchers": 0, "base_enlt": 4},
             "Medicine": {"planned_labor": 8, "spent_vouchers": 0, "base_enlt": 6},
@@ -73,53 +79,22 @@ class CentralPlan:
             "Healthcare": {"planned_labor": 13, "spent_vouchers": 0, "base_enlt": 5},
         }
 
-    def check_luxury_unlock(self):
-        if not self.unlocked_luxury:
-            if self.social_stability >= 85:
-                self.happiness_streak += 1
-                print(f"--- PROGRESS: Happiness Streak {self.happiness_streak}/3 ---")
-            else:
-                self.happiness_streak = 0 # Reset if people get mad
-
+    def check_luxury_unlock(self, stability):
+        if not self.unlocked_luxury and stability >= 85:
+            self.happiness_streak += 1
             if self.happiness_streak >= 3:
                 self.unlocked_luxury = True
-                # Electronics: High labor, high eco-cost
                 self.products["Electronics"] = {"planned_labor": 50, "spent_vouchers": 0, "base_enlt": 15}
-                # Also add it to the earth's registry via the bank
-                self.bank.registry["Electronics"] = {"capacity": 500, "current": 100, "regrow_rate": 0.0}
-                self.bank.waste_bin["Electronics"] = 0
-                print("\n!!! ACHIEVEMENT UNLOCKED: HIGH-TECH LUXURY (Electronics) !!!")
-    
+                self.bank.registry["Electronics"]["current"] = 100
+                print("\n!!! ACHIEVEMENT UNLOCKED: HIGH-TECH LUXURY !!!")
+
     def innovate(self):
-        # REALISTIC R&D: If Electronics are unlocked but VETOED, focus 60% of research there.
-        # This simulates "Crisis Innovation" to break the technological bottleneck.
         if self.unlocked_luxury and "Electronics" in self.products and self.products["Electronics"]["spent_vouchers"] == 0:
-            if random.random() < 0.60: # 60% chance to target the bottleneck
-                target = "Electronics"
-            else:
-                target = random.choice(list(self.products.keys()))
+            target = "Electronics" if random.random() < 0.6 else random.choice(list(self.products.keys()))
         else:
-            # Standard random innovation for a healthy economy
             target = random.choice(list(self.products.keys()))
-            
-        # Apply the 15% reduction to the Ecological Cost (base_enlt)
         self.products[target]["base_enlt"] *= 0.85
-        print(f"\n[TECH PROGRESS] Research focused on {target}. Ecological cost reduced by 15%.")
-
-    def intensify_electronics(self):
-        # If electronics are vetoed, shift labor from healthy sectors
-        if "Electronics" in self.products and self.products["Electronics"]["spent_vouchers"] == 0:
-            print(">>> BRAIN: Intensifying Electronics Research...")
-            self.products["Electronics"]["planned_labor"] += 2 
-            # Tax a healthy sector to pay for it
-            self.products["Bread"]["planned_labor"] -= 2 
-
-
-
-    def process_consumption(self, product_name, amount):
-        if product_name in self.products:
-            self.products[product_name]["spent_vouchers"] += amount
-            self.bank.deplete(product_name, amount)
+        print(f"[TECH] Research focused on {target}. Cost reduced by 15%.")
 
     def calculate_suv(self):
         print("\n" + "="*80 + "\n--- ISAACHIC-CYBERNETIC FEEDBACK ---")
@@ -131,8 +106,7 @@ class CentralPlan:
             ps_scores[name] = (data["planned_labor"] * suv) / (data["base_enlt"] * mult)
 
         for name, ps in ps_scores.items():
-            suv = self.products[name]["spent_vouchers"] / self.products[name]["planned_labor"]
-            action = "STABLE"
+            action = "PROCEED"
             if ps < 1.0:
                 action = "VETOED"
                 if name in self.substitutes:
@@ -140,40 +114,45 @@ class CentralPlan:
                         if ps_scores.get(alt, 0) > 1.2:
                             action = f"REDIRECT -> {alt}"; total_satisfaction += 0.5; break
             else:
-                action = "PROCEED"; total_satisfaction += 1.0
-            print(f"{name:12} | SUV: {suv:.2f} | PS: {ps:.2f} | {action}")
+                total_satisfaction += 1.0
+            print(f"{name:12} | PS: {ps:.2f} | {action}")
         
         self.social_stability = (total_satisfaction / len(self.products)) * 100
         print(f"SOCIAL STABILITY: {self.social_stability:.1f}%")
         for name in self.products: self.products[name]["spent_vouchers"] = 0
+        return self.social_stability
 
+# --- AGENT & EXECUTION ---
 class IsaachicAgent:
     def __init__(self, training): self.v_hour = 1 + (training / 40000); self.vouchers = 0
-    def work(self, hrs): credit = hrs * self.v_hour; self.vouchers += credit
+    def work(self, hrs): self.vouchers += hrs * self.v_hour
 
-# --- EXECUTION ---
 earth = ResourceBank(); plan = CentralPlan(earth)
 surgeon = IsaachicAgent(20000); laborer = IsaachicAgent(0)
 
-for year in range(1, 40):
+for year in range(1, 41):
     print(f"\n### YEAR {year} ###")
     surgeon.work(40); laborer.work(40)
-    
-    # Dynamic spending of all earned vouchers
     share = (surgeon.vouchers + laborer.vouchers) / len(plan.products)
-    for prod in plan.products: plan.process_consumption(prod, share)
-    surgeon.vouchers = 0; laborer.vouchers = 0 # Reset for next cycle
+    for prod in plan.products: plan.products[prod]["spent_vouchers"] += share
+    for prod in plan.products: earth.deplete(prod, share)
+    surgeon.vouchers = 0; laborer.vouchers = 0 
     
-    plan.intensify_electronics() # Forces labor reallocation if tech is blocked
-    plan.calculate_suv()
+    stability = plan.calculate_suv()
+    earth.apply_entropy()
     earth.tick(drought=(year == 5))
-    
-    # YEAR 12: THE GREAT FIRE
-    if year == 12:
-        print("\n!!! DISASTER: FOREST FIRE & CROP SMOKE !!!")
-        earth.registry["Wood"]["current"] *= 0.3  # 70% of wood supply gone
-        earth.registry["Bread"]["current"] *= 0.6 # 40% of bread lost to smoke/ash
-        # This will likely break ADAPT-REDIRECTS—watch for Social Stability crash.
+    if year == 12: earth.registry["Wood"]["current"] *= 0.3
+    earth.recycle(); plan.innovate(); plan.check_luxury_unlock(stability)
+print("\n" + "="*40)
+print("   FINAL ISAACHIC SYSTEM AUDIT (YEAR 40)")
+print("="*40)
+for name, res in earth.registry.items():
+    health = (res["current"] / res["capacity"]) * 100
+    print(f"{name:12} | Resource Integrity: {health:.1f}%")
 
-    earth.recycle(); plan.innovate()
-    plan.check_luxury_unlock()
+final_stability = plan.social_stability
+print(f"\nFINAL SOCIAL STABILITY: {final_stability:.1f}%")
+if final_stability > 90:
+    print("STATUS: Sustainable High-Tech Equilibrium Achieved.")
+else:
+    print("STATUS: Metabolic Friction remains. Further Innovation required.")
