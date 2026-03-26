@@ -51,15 +51,13 @@ class ResourceBank:
                 if "," in line:
                     raw_moisture, temp = line.split(",")
                     clean_moisture = self.map_moisture(float(raw_moisture))
-                    self.plots["Plot_A"]["moisture"] = clean_moisture
+                    
+                    # THIS IS THE REAL CONNECTION:
+                    self.plots["Plot_A"]["moisture"] = clean_moisture 
                     self.environmental_entropy["temperature"] = float(temp)
-                    print(f">>> HARDWARE SYNC: Moisture={clean_moisture:.1f}%, Temp={temp}°C")
+                    
+                    print(f">>> METABOLIC DATA: Moisture={clean_moisture:.1f}%, Temp={temp}°C")
             except: pass
-        else:
-            # MOCK MODE: Plot_A decays rapidly to force Gini spike
-            self.plots["Plot_A"]["moisture"] = max(0, self.plots["Plot_A"]["moisture"] - 15)
-            self.environmental_entropy["temperature"] = 35.0 # Constant heatwave
-            print(f">>> MOCK SYNC: Plot_A decaying... Temp={self.environmental_entropy['temperature']}°C")
 
     def apply_entropy(self):
         temp = self.environmental_entropy["temperature"]
