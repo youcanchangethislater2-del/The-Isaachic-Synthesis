@@ -45,20 +45,20 @@ class ResourceBank:
         self.minimum_survival = {"Water": 1500.0, "Nutrients": 600.0}
 
     def sync_sensors(self):
-        """Pulls real data from micro:bit or generates mocks."""
         if ser and ser.in_waiting > 0:
             try:
                 line = ser.readline().decode('utf-8').strip()
                 if "," in line:
-                    moisture, temp = line.split(",")
-                    self.plots["Plot_A"]["moisture"] = float(moisture)
+                    raw_moisture, temp = line.split(",")
+                    # Convert raw 0-1023 to 0-100%
+                    clean_moisture = self.map_moisture(float(raw_moisture))
+                    
+                    self.plots["Plot_A"]["moisture"] = clean_moisture
                     self.environmental_entropy["temperature"] = float(temp)
-                    print(f">>> HARDWARE SYNC: Plot_A Moisture={moisture}, Temp={temp}°C")
+                    
+                    print(f">>> METABOLIC DATA: Moisture={clean_moisture:.1f}%, Temp={temp}°C")
             except: pass
-        else:
-            # Mock drift for simulation
-            self.plots["Plot_A"]["moisture"] = max(0, self.plots["Plot_A"]["moisture"] - 5)
-            self.environmental_entropy["temperature"] = 35.0
+
 
     def apply_entropy(self):
         temp = self.environmental_entropy["temperature"]
@@ -80,6 +80,17 @@ class ResourceBank:
         res = self.registry.get("Total_Water_Tank") if resource_name == "Water" else None
         if not res or usage_rate <= 0: return 99.0
         return (max(res["current"] - self.minimum_survival.get("Water"), 0) / usage_rate)
+
+    def map_moisture(self, raw_value):
+        """Maps raw 0-1023 analog data to 0-100% moisture."""
+        # Calibration: 200 is bone dry, 850 is fully saturated
+        dry = 200 # Change these later to reflect real sensor calibration
+        wet = 850 # Change these later to reflect real sensor calibration
+        
+        # Clamp and scale
+        percentage = ((raw_value - dry) / (wet - dry)) * 100
+        return max(0, min(100, percentage))
+
 
 # --- CENTRAL PLAN: THE CYBERNETIC BRAIN ---
 class CentralPlan:
