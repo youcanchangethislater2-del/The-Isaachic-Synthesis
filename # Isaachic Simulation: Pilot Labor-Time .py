@@ -26,20 +26,17 @@ class ResourceBank:
             if res["regrow_rate"] == 0:
                 production = labor_units * 15 
                 res["current"] = min(res["capacity"], res["current"] + production)
-                # COMMENT OUT THIS LINE:
-                # print(f"  [PROD] {product_name} stock increased...")
+                print(f"  [PROD] {product_name} stock increased...")
 
     def apply_entropy(self):
         decay_rates = {"Bread": 0.03, "Steel": 0.02, "Electricity": 0.02, "Electronics": 0.05}
-        # COMMENT OUT THIS LINE:
-        # print(">>> ENTROPY: Natural decay applied to stocks.")
+        print(">>> ENTROPY: Natural decay applied to stocks.")
         for name, rate in decay_rates.items():
             if name in self.registry:
                 self.registry[name]["current"] -= (self.registry[name]["current"] * rate)
 
     def tick(self, drought=False): 
-        # COMMENT OUT THIS LINE:
-        # print("\n>>> METABOLIC TICK <<<")
+        print("\n>>> METABOLIC TICK <<<")
         for name, res in self.registry.items():
             rate = res["regrow_rate"]
             if drought and name in ["Water", "Wood"]: rate *= 0.5
@@ -82,7 +79,6 @@ class CentralPlan:
         self.bank = resource_bank
         self.in_emergency = False  # Track if we are in War-Economy mode
         self.original_plan = {}    # Store the snapshot for recovery
-        # ... (rest of your existing init) ...
         self.substitutes = {
             "Steel": ["Wood", "Plastic", "Electricity"],
             "Wood": ["Plastic", "Steel"],
@@ -161,7 +157,7 @@ class CentralPlan:
 
                 for prod in self.products:
                     if prod != target_product:
-                        # Your 0.8 (80%) tax
+                        # 0.8 (80%) tax
                         tax = self.products[prod]["planned_labor"] * 0.8
                         self.products[prod]["planned_labor"] -= tax
                         self.products[target_product]["planned_labor"] += tax
